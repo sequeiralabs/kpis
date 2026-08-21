@@ -1,0 +1,64 @@
+# Program KPI database — local instance for browsing the schema and demo data.
+#
+#   docker compose up -d          build and load (first run takes ~2 minutes:
+#                                 the demo dataset generates ~3,300 observations
+#                                 and snapshots three financial years)
+#   docker compose logs -f db     watch the load
+#   make psql                     open a shell on the database
+#   http://localhost:8080         browse it in Adminer
+#
+# Everything in ./schema is executed once, in filename order, the first time the
+# data volume is created. To rebuild from scratch: docker compose down -v && docker compose up -d
+
+name: kpi-demo
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: kpi-demo-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kpi
+      POSTGRES_USER: kpi
+      POSTGRES_PASSWORD: kpi
+      # Faster first load; this is a disposable local database, not production.
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    ports:
+      # 55432 on the host, to avoid clashing with a local Postgres on 5432.
+      - "55432:5432"
+    volumes:
+      - ./schema:/docker-entrypoint-initdb.d:ro
+      - kpi_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kpi -d kpi"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  adminer:
+    image: adminer:5
+    container_name: kpi-demo-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+      ADMINER_DESIGN: dracula
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Serves the SPA prototype. index.html is self-contained, so this is only a
+  # static file server — rebuild it with `make dashboard` after data changes.
+  dashboard:
+    image: nginx:alpine
+    container_name: kpi-demo-dashboard
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    volumes:
+      - ./dashboard:/usr/share/nginx/html:ro
+
+volumes:
+  kpi_pgdata:

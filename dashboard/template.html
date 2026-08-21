@@ -1,0 +1,820 @@
+<title>Program KPI Dashboard &mdash; Prototype</title>
+
+<style>
+/* ------------------------------------------------------------------ tokens */
+:root {
+  color-scheme: light;
+  --page:           #f9f9f7;
+  --surface-1:      #fcfcfb;
+  --text-primary:   #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted:     #898781;
+  --grid:           #e1e0d9;
+  --axis:           #c3c2b7;
+  --border:         rgba(11,11,11,0.10);
+  --series-1:       #2a78d6;
+  --series-2:       #eb6834;
+  --good:           #0ca30c;
+  --warning:        #fab219;
+  --serious:        #ec835a;
+  --critical:       #d03b3b;
+  --neutral:        #b8b6ad;
+  --accent-soft:    rgba(42,120,214,0.10);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page:           #0d0d0d;
+    --surface-1:      #1a1a19;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --axis:           #383835;
+    --border:         rgba(255,255,255,0.10);
+    --series-1:       #3987e5;
+    --series-2:       #d95926;
+    --neutral:        #56554f;
+    --accent-soft:    rgba(57,135,229,0.16);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page:           #0d0d0d;
+  --surface-1:      #1a1a19;
+  --text-primary:   #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted:     #898781;
+  --grid:           #2c2c2a;
+  --axis:           #383835;
+  --border:         rgba(255,255,255,0.10);
+  --series-1:       #3987e5;
+  --series-2:       #d95926;
+  --neutral:        #56554f;
+  --accent-soft:    rgba(57,135,229,0.16);
+}
+
+/* ------------------------------------------------------------------ layout */
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text-primary);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 72px; }
+
+header.masthead { margin-bottom: 22px; }
+.eyebrow {
+  font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-muted); margin: 0 0 6px;
+}
+h1 { font-size: 26px; line-height: 1.2; margin: 0 0 6px; font-weight: 640; }
+.sub { color: var(--text-secondary); margin: 0; font-size: 14px; max-width: 70ch; }
+
+.banner {
+  margin: 18px 0 0; padding: 11px 14px; border-radius: 8px;
+  background: var(--accent-soft); border: 1px solid var(--border);
+  color: var(--text-secondary); font-size: 13px;
+}
+.banner strong { color: var(--text-primary); }
+
+/* filters + tabs in one row above the charts */
+.controls {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  margin: 22px 0 18px; padding-bottom: 14px; border-bottom: 1px solid var(--grid);
+}
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+button {
+  font: inherit; cursor: pointer; border-radius: 7px;
+  border: 1px solid transparent; background: transparent;
+  color: var(--text-secondary); padding: 7px 13px;
+}
+button:hover { background: var(--accent-soft); color: var(--text-primary); }
+button[aria-selected="true"], button[aria-pressed="true"] {
+  background: var(--surface-1); border-color: var(--border);
+  color: var(--text-primary); font-weight: 600;
+}
+button:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; }
+.spacer { flex: 1 1 auto; }
+.yearpick { display: flex; gap: 3px; align-items: center; }
+.yearpick .lbl { font-size: 12px; color: var(--text-muted); margin-right: 5px; }
+select {
+  font: inherit; padding: 6px 9px; border-radius: 7px;
+  border: 1px solid var(--border); background: var(--surface-1);
+  color: var(--text-primary); max-width: 340px;
+}
+
+/* ------------------------------------------------------------------ cards */
+.card {
+  background: var(--surface-1); border: 1px solid var(--border);
+  border-radius: 11px; padding: 18px 18px 14px; margin-bottom: 16px;
+}
+.card > h2 { font-size: 15px; margin: 0 0 3px; font-weight: 620; }
+.card > .note { font-size: 13px; color: var(--text-secondary); margin: 0 0 16px; max-width: 78ch; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+
+/* stat tiles */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: 12px; }
+.tile {
+  background: var(--surface-1); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 15px;
+}
+.tile .v { font-size: 27px; font-weight: 640; line-height: 1.1; }
+.tile .k { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+
+/* legend */
+.legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 0 0 12px; font-size: 12.5px; color: var(--text-secondary); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+
+/* charts */
+.chart { width: 100%; overflow-x: auto; }
+svg { display: block; max-width: 100%; height: auto; }
+.tick { font-size: 11px; fill: var(--text-muted); }
+.vlabel { font-size: 11.5px; fill: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.catlabel { font-size: 12px; fill: var(--text-secondary); }
+.gridline { stroke: var(--grid); stroke-width: 1; }
+.axisline { stroke: var(--axis); stroke-width: 1; }
+
+/* tables */
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tbody tr:hover { background: var(--accent-soft); }
+.catrow td { background: var(--accent-soft); font-weight: 640; font-size: 12px;
+             text-transform: uppercase; letter-spacing: .05em; color: var(--text-secondary); }
+.sub-kpi td:first-child { padding-left: 26px; }
+
+/* status chips: colour never carries meaning alone &mdash; icon + label always */
+.chip {
+  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  font-size: 12px; font-weight: 600; padding: 2px 8px 2px 6px; border-radius: 999px;
+  border: 1px solid var(--border); color: var(--text-primary);
+}
+.chip .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.chip.ok    .dot { background: var(--good); }
+.chip.warn  .dot { background: var(--warning); }
+.chip.bad   .dot { background: var(--critical); }
+.chip.none  .dot { background: var(--neutral); }
+.muted { color: var(--text-muted); }
+.mono { font-variant-numeric: tabular-nums; }
+
+/* tooltip */
+#tip {
+  position: fixed; z-index: 40; pointer-events: none; opacity: 0;
+  transition: opacity .1s; max-width: 300px;
+  background: var(--surface-1); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 9px 11px; font-size: 12.5px; line-height: 1.45;
+  box-shadow: 0 6px 22px rgba(0,0,0,.16);
+}
+#tip .t { font-weight: 640; margin-bottom: 3px; }
+#tip .r { color: var(--text-secondary); }
+#tip b { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+.hidden { display: none; }
+footer { margin-top: 30px; padding-top: 16px; border-top: 1px solid var(--grid);
+         font-size: 12.5px; color: var(--text-muted); }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <p class="eyebrow">Prototype &middot; single-page dashboard</p>
+    <h1>Program KPI Dashboard</h1>
+    <p class="sub">
+      Reading the demonstration dataset in the KPI schema: 20 KPIs across five
+      categories, five programs and 16 projects, 2023&ndash;2025. Every figure below
+      is produced by the database's own reporting views, not recomputed here.
+    </p>
+    <div class="banner" id="banner"></div>
+  </header>
+
+  <div class="controls">
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="spacer"></div>
+    <div class="yearpick" id="yearpick"><span class="lbl">Financial year</span></div>
+  </div>
+
+  <main id="views"></main>
+
+  <footer>
+    Synthetic demonstration data. Values are illustrative and are not the indexed
+    2025 figures from the source KPI file, whose calculation basis the framework
+    flags as unconfirmed. KPI definitions, targets and aggregation rules are
+    marked draft pending validation by the Program and MELIA teams.
+  </footer>
+</div>
+
+<div id="tip" role="status" aria-live="polite"></div>
+
+<script>
+const DATA = /*__DATA__*/ null;
+
+/* ---------------------------------------------------------------- helpers */
+const $ = (s, r) => (r || document).querySelector(s);
+const el = (t, a, kids) => {
+  const n = document.createElement(t);
+  for (const k in (a || {})) {
+    if (k === 'class') n.className = a[k];
+    else if (k === 'html') n.innerHTML = a[k];
+    else if (k === 'text') n.textContent = a[k];
+    else n.setAttribute(k, a[k]);
+  }
+  (kids || []).forEach(c => n.appendChild(c));
+  return n;
+};
+const SVGNS = 'http://www.w3.org/2000/svg';
+const svgEl = (t, a) => {
+  const n = document.createElementNS(SVGNS, t);
+  for (const k in (a || {})) n.setAttribute(k, a[k]);
+  return n;
+};
+const fmt = (v, d) => v === null || v === undefined
+  ? '\u2014'
+  : Number(v).toLocaleString(undefined, {
+      minimumFractionDigits: d === undefined ? 0 : d,
+      maximumFractionDigits: d === undefined ? 1 : d });
+const pct = v => v === null || v === undefined ? '\u2014' : fmt(v, 1) + '%';
+const titleCase = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+/* Traffic light: an icon/label pairing, never colour alone. */
+function band(b, achievement) {
+  if (!b) return { cls: 'none', label: 'No target' };
+  if (b === 'ON_TRACK')  return { cls: 'ok',   label: 'On track' };
+  if (b === 'AT_RISK')   return { cls: 'warn', label: 'At risk' };
+  return { cls: 'bad', label: 'Off track' };
+}
+
+/* ---------------------------------------------------------------- tooltip */
+const tip = $('#tip');
+function showTip(evt, title, rows) {
+  tip.innerHTML = '';
+  tip.appendChild(el('div', { class: 't', text: title }));
+  rows.forEach(([k, v]) => {
+    const r = el('div', { class: 'r' });
+    r.appendChild(document.createTextNode(k + ': '));
+    r.appendChild(el('b', { text: String(v) }));
+    tip.appendChild(r);
+  });
+  tip.style.opacity = 1;
+  moveTip(evt);
+}
+function moveTip(evt) {
+  const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = evt.clientX + pad, y = evt.clientY + pad;
+  if (x + w > window.innerWidth - 8) x = evt.clientX - w - pad;
+  if (y + h > window.innerHeight - 8) y = evt.clientY - h - pad;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+function hideTip() { tip.style.opacity = 0; }
+/* A tooltip anchored to the pointer would otherwise hang around when the page
+   scrolls out from under it without the pointer moving. */
+window.addEventListener('scroll', hideTip, { passive: true });
+function hoverable(node, title, rows) {
+  node.addEventListener('mouseenter', e => showTip(e, title, rows));
+  node.addEventListener('mousemove', moveTip);
+  node.addEventListener('mouseleave', hideTip);
+  node.style.cursor = 'default';
+}
+
+/* ------------------------------------------------------------------ charts */
+
+/* Horizontal bars, one series. Data ends are rounded 4px, anchored to the
+   baseline; values are direct-labelled so colour is never load-bearing. */
+function barsH(rows, opts) {
+  opts = opts || {};
+  const rowH = opts.rowH || 30, gap = 8, padR = 74, padT = 6;
+  /* Sized to the longest label so text-anchor:end never runs off the left edge. */
+  const padL = opts.padL ||
+    Math.min(300, Math.max(120, 9 + 6.6 * Math.max(...rows.map(r => String(r.label).length))));
+  const w = opts.width || 720;
+  const h = padT + rows.length * (rowH + gap);
+  const plotW = w - padL - padR;
+  const max = Math.max(1, ...rows.map(r => r.value || 0));
+  const svg = svgEl('svg', { viewBox: `0 0 ${w} ${h}`, width: w, height: h,
+                             role: 'img', 'aria-label': opts.aria || 'bar chart' });
+
+  rows.forEach((r, i) => {
+    const y = padT + i * (rowH + gap);
+    const bw = Math.max(2, (r.value || 0) / max * plotW);
+    const g = svgEl('g');
+
+    const lab = svgEl('text', { x: padL - 10, y: y + rowH / 2 + 4,
+                                'text-anchor': 'end', class: 'catlabel' });
+    lab.textContent = r.label;
+    g.appendChild(lab);
+
+    const bar = svgEl('rect', { x: padL, y: y + 4, width: bw, height: rowH - 8,
+                                rx: 4, fill: r.color || 'var(--series-1)' });
+    g.appendChild(bar);
+
+    const vl = svgEl('text', { x: padL + bw + 8, y: y + rowH / 2 + 4, class: 'vlabel' });
+    vl.textContent = r.display !== undefined ? r.display : fmt(r.value);
+    g.appendChild(vl);
+
+    hoverable(g, r.label, r.tip || [[opts.measure || 'Value', fmt(r.value)]]);
+    svg.appendChild(g);
+  });
+  return svg;
+}
+
+/* Two series side by side \u2014 used for the deduplication comparison. */
+function barsGrouped(rows, series, opts) {
+  opts = opts || {};
+  const rowH = 15, inner = 4, groupGap = 16, padR = 80, padT = 4;
+  const padL = opts.padL ||
+    Math.min(300, Math.max(120, 9 + 6.6 * Math.max(...rows.map(r => String(r.label).length))));
+  const w = opts.width || 720;
+  const groupH = series.length * rowH + (series.length - 1) * inner;
+  const h = padT + rows.length * (groupH + groupGap);
+  const plotW = w - padL - padR;
+  const max = Math.max(1, ...rows.flatMap(r => series.map(s => r[s.key] || 0)));
+  const svg = svgEl('svg', { viewBox: `0 0 ${w} ${h}`, width: w, height: h,
+                             role: 'img', 'aria-label': opts.aria || 'grouped bar chart' });
+
+  rows.forEach((r, i) => {
+    const gy = padT + i * (groupH + groupGap);
+    const lab = svgEl('text', { x: padL - 10, y: gy + groupH / 2 + 4,
+                                'text-anchor': 'end', class: 'catlabel' });
+    lab.textContent = r.label;
+    svg.appendChild(lab);
+
+    series.forEach((s, si) => {
+      const y = gy + si * (rowH + inner);
+      const v = r[s.key] || 0;
+      const bw = Math.max(2, v / max * plotW);
+      const g = svgEl('g');
+      g.appendChild(svgEl('rect', { x: padL, y: y, width: bw, height: rowH,
+                                    rx: 4, fill: s.color }));
+      const vl = svgEl('text', { x: padL + bw + 8, y: y + rowH - 3, class: 'vlabel' });
+      vl.textContent = fmt(v);
+      g.appendChild(vl);
+      hoverable(g, r.label, [[s.label, fmt(v)]].concat(r.tip || []));
+      svg.appendChild(g);
+    });
+  });
+  return svg;
+}
+
+/* Stacked status bars. Segments carry a 2px surface gap between them. */
+function barsStacked(rows, series, opts) {
+  opts = opts || {};
+  const rowH = 26, gap = 10, padR = 56, padT = 4;
+  const padL = opts.padL ||
+    Math.min(300, Math.max(120, 9 + 6.6 * Math.max(...rows.map(r => String(r.label).length))));
+  const w = opts.width || 720;
+  const h = padT + rows.length * (rowH + gap);
+  const plotW = w - padL - padR;
+  const max = Math.max(1, ...rows.map(r => series.reduce((a, s) => a + (r[s.key] || 0), 0)));
+  const svg = svgEl('svg', { viewBox: `0 0 ${w} ${h}`, width: w, height: h,
+                             role: 'img', 'aria-label': opts.aria || 'stacked bar chart' });
+
+  rows.forEach((r, i) => {
+    const y = padT + i * (rowH + gap);
+    const lab = svgEl('text', { x: padL - 10, y: y + rowH / 2 + 4,
+                                'text-anchor': 'end', class: 'catlabel' });
+    lab.textContent = r.label;
+    svg.appendChild(lab);
+
+    let x = padL;
+    const total = series.reduce((a, s) => a + (r[s.key] || 0), 0);
+    series.forEach(s => {
+      const v = r[s.key] || 0;
+      if (!v) return;
+      const bw = Math.max(3, v / max * plotW) - 2;   /* 2px surface gap */
+      const g = svgEl('g');
+      g.appendChild(svgEl('rect', { x: x, y: y + 3, width: bw, height: rowH - 6,
+                                    rx: 4, fill: s.color }));
+      g.appendChild(svgEl('rect', { x: x, y: y + 3, width: bw, height: rowH - 6,
+                                    rx: 4, fill: 'none',
+                                    stroke: 'var(--border)', 'stroke-width': 1 }));
+      hoverable(g, r.label, [[s.label, fmt(v)], ['Total', fmt(total)]]);
+      svg.appendChild(g);
+      x += bw + 2;
+    });
+
+    const vl = svgEl('text', { x: x + 8, y: y + rowH / 2 + 4, class: 'vlabel' });
+    vl.textContent = fmt(total);
+    svg.appendChild(vl);
+  });
+  return svg;
+}
+
+/* Three-year trend. 2px line, 8px markers, direct end label. */
+function trendLine(points, opts) {
+  opts = opts || {};
+  const w = opts.width || 640, h = opts.height || 210;
+  const padL = 56, padR = 74, padT = 16, padB = 32;
+  const plotW = w - padL - padR, plotH = h - padT - padB;
+  const vals = points.map(p => p.value).filter(v => v !== null && v !== undefined);
+  if (!vals.length) return el('p', { class: 'muted', text: 'No values for this KPI.' });
+  /* The target series shares the axis, so it has to be inside the domain --
+     otherwise a target above the best actual is drawn off the top of the plot. */
+  const tvals = points.map(p => p.target).filter(v => v !== null && v !== undefined);
+  const all = vals.concat(tvals);
+  const max = Math.max(...all), min = Math.min(0, ...all);
+  const span = (max - min) || 1;
+  const x = i => padL + (points.length === 1 ? plotW / 2 : i / (points.length - 1) * plotW);
+  const y = v => padT + plotH - (v - min) / span * plotH;
+
+  const svg = svgEl('svg', { viewBox: `0 0 ${w} ${h}`, width: w, height: h,
+                             role: 'img', 'aria-label': opts.aria || 'trend line' });
+
+  [0, 0.5, 1].forEach(t => {
+    const gy = padT + plotH * t;
+    svg.appendChild(svgEl('line', { x1: padL, x2: padL + plotW, y1: gy, y2: gy,
+                                    class: t === 1 ? 'axisline' : 'gridline' }));
+    const tv = svgEl('text', { x: padL - 9, y: gy + 4, 'text-anchor': 'end', class: 'tick' });
+    tv.textContent = fmt(min + span * (1 - t));
+    svg.appendChild(tv);
+  });
+
+  const d = points.map((p, i) => (i ? 'L' : 'M') + x(i) + ' ' + y(p.value)).join(' ');
+  svg.appendChild(svgEl('path', { d: d, fill: 'none', stroke: 'var(--series-1)',
+                                  'stroke-width': 2, 'stroke-linejoin': 'round',
+                                  'stroke-linecap': 'round' }));
+
+  if (points.some(p => p.target !== null && p.target !== undefined)) {
+    const dt = points.filter(p => p.target != null)
+      .map((p, i) => (i ? 'L' : 'M') + x(points.indexOf(p)) + ' ' + y(p.target)).join(' ');
+    svg.appendChild(svgEl('path', { d: dt, fill: 'none', stroke: 'var(--series-2)',
+                                    'stroke-width': 2, 'stroke-dasharray': '5 4',
+                                    'stroke-linecap': 'round' }));
+  }
+
+  points.forEach((p, i) => {
+    const g = svgEl('g');
+    /* 2px surface ring keeps overlapping marks legible */
+    g.appendChild(svgEl('circle', { cx: x(i), cy: y(p.value), r: 6,
+                                    fill: 'var(--series-1)',
+                                    stroke: 'var(--surface-1)', 'stroke-width': 2 }));
+    const tx = svgEl('text', { x: x(i), y: h - 10, 'text-anchor': 'middle', class: 'tick' });
+    tx.textContent = p.label;
+    g.appendChild(tx);
+    hoverable(g, p.label, [['Actual', fmt(p.value)],
+                           ['Target', p.target == null ? 'not supplied' : fmt(p.target)],
+                           ['Achievement', pct(p.achievement)]]);
+    svg.appendChild(g);
+  });
+
+  const last = points[points.length - 1];
+  const endLab = svgEl('text', { x: x(points.length - 1) + 12,
+                                 y: y(last.value) + 4, class: 'vlabel' });
+  endLab.textContent = fmt(last.value);
+  svg.appendChild(endLab);
+  return svg;
+}
+
+function legend(items) {
+  const box = el('div', { class: 'legend' });
+  items.forEach(it => {
+    const s = el('span');
+    s.appendChild(el('i', { class: 'swatch', style: 'background:' + it.color }));
+    s.appendChild(document.createTextNode(it.label));
+    box.appendChild(s);
+  });
+  return box;
+}
+
+function card(title, note, body) {
+  const c = el('div', { class: 'card' });
+  c.appendChild(el('h2', { text: title }));
+  if (note) c.appendChild(el('p', { class: 'note', text: note }));
+  (Array.isArray(body) ? body : [body]).forEach(b => b && c.appendChild(b));
+  return c;
+}
+
+function table(headers, rows) {
+  const wrap = el('div', { class: 'tablewrap' });
+  const t = el('table');
+  const thead = el('thead'), tr = el('tr');
+  headers.forEach(h => tr.appendChild(el('th', { class: h.num ? 'num' : '', text: h.label })));
+  thead.appendChild(tr); t.appendChild(thead);
+  const tb = el('tbody');
+  rows.forEach(r => {
+    const row = el('tr', { class: r.class || '' });
+    r.cells.forEach(c => {
+      const td = el('td', { class: c.num ? 'num' : (c.class || '') });
+      if (c.node) td.appendChild(c.node); else td.textContent = c.text;
+      row.appendChild(td);
+    });
+    tb.appendChild(row);
+  });
+  t.appendChild(tb); wrap.appendChild(t);
+  return wrap;
+}
+
+/* ------------------------------------------------------------------- state */
+let YEAR = DATA.years[DATA.years.length - 1];
+let TAB = 'overview';
+let KPI = 'KPI_6';
+
+const byYear = (arr, y) => arr.filter(r => r.fiscal_year === y);
+
+/* -------------------------------------------------------------------- views */
+
+function viewOverview() {
+  const frag = document.createDocumentFragment();
+  const c = DATA.counts;
+
+  const tiles = el('div', { class: 'tiles' });
+  [['Programs', c.programs], ['Projects', c.projects], ['Activities', c.activities],
+   ['Observations', c.observations], ['Tracked entities', c.entities],
+   ['KPIs in catalogue', c.indicators]].forEach(([k, v]) => {
+    const t = el('div', { class: 'tile' });
+    t.appendChild(el('div', { class: 'v', text: fmt(v) }));
+    t.appendChild(el('div', { class: 'k', text: k }));
+    tiles.appendChild(t);
+  });
+  frag.appendChild(card('Dataset at a glance',
+    'The demonstration dataset spans three financial years across the full organisation hierarchy.',
+    tiles));
+
+  /* Category performance \u2014 status colours, icon + label in the legend */
+  const cats = byYear(DATA.categories, YEAR).sort((a, b) => a.sort_order - b.sort_order);
+  const series = [
+    { key: 'on_track_count',  label: 'On track',        color: 'var(--good)' },
+    { key: 'at_risk_count',   label: 'At risk',         color: 'var(--warning)' },
+    { key: 'off_track_count', label: 'Off track',       color: 'var(--critical)' },
+    { key: 'no_target_count', label: 'No target set',   color: 'var(--neutral)' }
+  ];
+  const rows = cats.map(r => Object.assign({ label: r.category_name }, r));
+  frag.appendChild(card(
+    'KPI performance by category, FY' + YEAR,
+    'Counts of KPIs by traffic-light state. Values are never added across a category \u2014 the twenty indicators have incompatible units \u2014 so a category rolls up performance, not magnitude.',
+    [legend(series), el('div', { class: 'chart' }, [barsStacked(rows, series, { aria: 'KPIs by state per category' })])]
+  ));
+
+  /* Deduplication \u2014 the headline correctness story */
+  const dd = byYear(DATA.dedup, YEAR)
+    .filter(r => r.deduplicated != null && r.naive_sum != null)
+    .sort((a, b) => (b.naive_sum - b.deduplicated) - (a.naive_sum - a.deduplicated));
+  if (dd.length) {
+    const ddSeries = [
+      { key: 'naive_sum',    label: 'Sum of program figures (wrong)', color: 'var(--series-2)' },
+      { key: 'deduplicated', label: 'Distinct entities (published)',  color: 'var(--series-1)' }
+    ];
+    const ddRows = dd.map(r => Object.assign({
+      label: r.kpi_code.replace('_', ' '),
+      tip: [['KPI', r.kpi_name],
+            ['Double counted', fmt(r.naive_sum - r.deduplicated)]]
+    }, r));
+    frag.appendChild(card(
+      'Why de-duplication matters, FY' + YEAR,
+      'Eight KPIs count things that more than one project reports \u2014 a student enrolled twice, a delivery partner trained by three projects. Adding up project figures inflates every one of them; the published figure counts distinct entities instead.',
+      [legend(ddSeries),
+       el('div', { class: 'chart' }, [barsGrouped(ddRows, ddSeries, { aria: 'de-duplicated versus summed counts' })])]
+    ));
+  }
+  return frag;
+}
+
+function viewScorecard() {
+  const frag = document.createDocumentFragment();
+  const sc = byYear(DATA.scorecard, YEAR);
+  const shares = byYear(DATA.female_share, YEAR);
+  const shareBy = {}; shares.forEach(s => shareBy[s.parent_kpi_code] = s);
+
+  const headers = [
+    { label: 'KPI' }, { label: 'Indicator' }, { label: 'Method' },
+    { label: 'Value', num: true }, { label: 'Target', num: true },
+    { label: 'Achievement', num: true }, { label: 'Status' }
+  ];
+  const rows = [];
+  let lastCat = null;
+  sc.sort((a, b) => a.category_order - b.category_order ||
+                    a.kpi_code.localeCompare(b.kpi_code, undefined, { numeric: true }))
+    .forEach(r => {
+      if (r.category_name !== lastCat) {
+        lastCat = r.category_name;
+        rows.push({ class: 'catrow', cells: [{ text: r.category_name }, { text: '' }, { text: '' },
+                                             { text: '' }, { text: '' }, { text: '' }, { text: '' }] });
+      }
+      const b = band(r.performance_band);
+      const chip = el('span', { class: 'chip ' + b.cls });
+      chip.appendChild(el('i', { class: 'dot' }));
+      chip.appendChild(document.createTextNode(b.label));
+
+      rows.push({ cells: [
+        { text: r.kpi_code.replace('_', ' ') },
+        { text: r.kpi_name + (r.is_indexed ? '  (indexed figure)' : '') },
+        { text: r.aggregation_method.replace(/_/g, ' ') },
+        { text: fmt(r.value, 2), num: true },
+        { text: r.target_value == null ? '\u2014' : fmt(r.target_value, 1), num: true },
+        { text: pct(r.achievement_pct), num: true },
+        { node: chip }
+      ] });
+
+      const sh = shareBy[r.kpi_code];
+      if (sh) {
+        rows.push({ class: 'sub-kpi', cells: [
+          { text: sh.share_kpi_code.replace('_', ' ') },
+          { text: 'Female share, derived from the sex disaggregation of ' + r.kpi_code.replace('_', ' ') },
+          { text: 'derived' },
+          { text: pct(sh.female_share_pct), num: true },
+          { text: '\u2014', num: true },
+          { text: '\u2014', num: true },
+          { node: el('span', { class: 'muted', text: fmt(sh.female_count) + ' of ' + fmt(sh.total_count) }) }
+        ] });
+      }
+    });
+
+  frag.appendChild(card(
+    'Institutional scorecard, FY' + YEAR,
+    'All twenty KPIs in their source categories. The "a" sub-indicators are derived from their parent\'s sex disaggregation rather than reported separately, so the share and the total always reconcile.',
+    table(headers, rows)));
+  return frag;
+}
+
+function viewTrend() {
+  const frag = document.createDocumentFragment();
+
+  const codes = [...new Set(DATA.scorecard.map(r => r.kpi_code))]
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const nameOf = {}; DATA.scorecard.forEach(r => nameOf[r.kpi_code] = r.kpi_name);
+
+  const sel = el('select', { 'aria-label': 'Choose a KPI' });
+  codes.forEach(c => {
+    const o = el('option', { value: c, text: c.replace('_', ' ') + ' \u2014 ' + nameOf[c] });
+    if (c === KPI) o.selected = true;
+    sel.appendChild(o);
+  });
+  sel.addEventListener('change', () => { KPI = sel.value; render(); });
+
+  const pts = DATA.years.map(y => {
+    const r = DATA.scorecard.find(s => s.fiscal_year === y && s.kpi_code === KPI);
+    return { label: 'FY' + y, value: r ? r.value : null,
+             target: r ? r.target_value : null,
+             achievement: r ? r.achievement_pct : null };
+  }).filter(p => p.value !== null);
+
+  const trendLegend = legend([
+    { label: 'Actual', color: 'var(--series-1)' },
+    { label: 'Target', color: 'var(--series-2)' }
+  ]);
+
+  frag.appendChild(card(
+    'Three-year trend',
+    'Annual figures are computed from the same quarterly observations as the quarterly views, through the reporting-period hierarchy, so the two can never disagree.',
+    [el('div', { class: 'controls', style: 'border:0;margin:0 0 14px;padding:0' }, [sel]),
+     trendLegend,
+     el('div', { class: 'chart' }, [pts.length ? trendLine(pts, { aria: 'trend for ' + KPI }) : el('p', { class: 'muted', text: 'No data.' })])]
+  ));
+
+  /* Program comparison for the same KPI */
+  const pr = byYear(DATA.programs, YEAR).filter(r => r.kpi_code === KPI);
+  if (pr.length) {
+    const rows = pr.sort((a, b) => (b.value || 0) - (a.value || 0)).map(r => ({
+      label: r.program_name.replace(/ Program$/, ''),
+      value: r.value,
+      tip: [['Target', r.target_value == null ? 'not supplied' : fmt(r.target_value)],
+            ['Achievement', pct(r.achievement_pct)]]
+    }));
+    frag.appendChild(card(
+      'By program \u2014 ' + KPI.replace('_', ' ') + ', FY' + YEAR,
+      'Program figures for a distinct-count KPI will not add up to the institutional total, and are not meant to: an entity shared between two programs counts once at institutional level.',
+      el('div', { class: 'chart' }, [barsH(rows, { aria: 'programs compared' })])));
+  }
+
+  /* Geography */
+  const geo = byYear(DATA.geography, YEAR).sort((a, b) => b.observation_count - a.observation_count).slice(0, 12);
+  if (geo.length) {
+    frag.appendChild(card(
+      'Where the results were recorded, FY' + YEAR,
+      'Observation counts by country, from the observation-grain fact view. Geography is a drill-down axis, not part of a KPI\'s disaggregation contract.',
+      el('div', { class: 'chart' }, [barsH(geo.map(g => ({
+        label: g.country_name, value: g.observation_count,
+        tip: [['Region', g.region], ['Projects reporting', fmt(g.project_count)]]
+      })), { aria: 'observations by country', measure: 'Observations' })])));
+  }
+  return frag;
+}
+
+function viewQuality() {
+  const frag = document.createDocumentFragment();
+  const dims = DATA.dq_dimensions;
+
+  const series = [
+    { key: 'open_flags',         label: 'Open',         color: 'var(--critical)' },
+    { key: 'under_review_flags', label: 'Under review', color: 'var(--warning)' },
+    { key: 'resolved_flags',     label: 'Resolved',     color: 'var(--good)' }
+  ];
+  const rows = dims.map(d => Object.assign({
+    label: titleCase(d.dimension),
+    tip: [['Blocking publication', fmt(d.blocking_flags)]]
+  }, d));
+
+  const blocking = dims.reduce((a, d) => a + d.blocking_flags, 0);
+
+  frag.appendChild(card(
+    'Data quality across the seven dimensions',
+    'Records that fail validation are flagged, never deleted. A blocking flag withholds the value from published figures until it is resolved; the record itself stays in the audit trail. ' +
+    blocking + ' flags are currently blocking a figure.',
+    [legend(series), el('div', { class: 'chart' }, [barsStacked(rows, series, { aria: 'flags by quality dimension' })])]
+  ));
+
+  /* Ingestion */
+  if (DATA.ingestion.length) {
+    frag.appendChild(card(
+      'Ingestion batches',
+      'Raw submissions are retained in staging before transformation. Records that cannot be validated stop here and never become KPI values.',
+      table([{ label: 'Source' }, { label: 'Mode' }, { label: 'Started' }, { label: 'Status' },
+             { label: 'Staged', num: true }, { label: 'Transformed', num: true },
+             { label: 'Flagged', num: true }, { label: 'Rejected', num: true },
+             { label: 'Accepted', num: true }],
+        DATA.ingestion.map(i => ({ cells: [
+          { text: i.source_system }, { text: i.integration_mode.replace('_', ' ') },
+          { text: i.started_on }, { text: i.status },
+          { text: fmt(i.staged_records), num: true }, { text: fmt(i.transformed), num: true },
+          { text: fmt(i.flagged), num: true }, { text: fmt(i.rejected), num: true },
+          { text: i.acceptance_rate_pct == null ? '\u2014' : pct(i.acceptance_rate_pct), num: true }
+        ] })))));
+  }
+
+  /* Flag detail */
+  const flagRows = DATA.dq_flags.map(f => {
+    const chip = el('span', { class: 'chip ' + (f.blocks_publication ? 'bad' : 'warn') });
+    chip.appendChild(el('i', { class: 'dot' }));
+    chip.appendChild(document.createTextNode(f.blocks_publication ? 'Blocking' : 'Advisory'));
+    const where = [f.program_name, f.project_name].filter(Boolean).join(' \u00b7 ')
+                  || f.entity_name || f.source_entity || '\u2014';
+    return { cells: [
+      { text: titleCase(f.dimension) }, { text: f.rule_name }, { node: chip },
+      { text: f.status.replace('_', ' ') }, { text: f.indicator_code || '\u2014' },
+      { text: where }, { text: f.detail || '' }
+    ] };
+  });
+  frag.appendChild(card(
+    'Open and recent flags',
+    'Every flag names the rule it broke, the record it applies to and whether it withholds a published figure.',
+    table([{ label: 'Dimension' }, { label: 'Rule' }, { label: 'Effect' }, { label: 'Status' },
+           { label: 'KPI' }, { label: 'Where' }, { label: 'Detail' }], flagRows)));
+  return frag;
+}
+
+function viewLineage() {
+  const frag = document.createDocumentFragment();
+  const rows = DATA.lineage.map(l => ({ cells: [
+    { text: l.program_name.replace(/ Program$/, '') },
+    { text: l.project_name },
+    { text: l.activity_name || 'Direct entry' },
+    { text: l.disaggregation_key || '\u2014' },
+    { text: fmt(l.numerator), num: true },
+    { text: l.denominator == null ? '\u2014' : fmt(l.denominator), num: true },
+    { text: l.status },
+    { text: l.has_evidence ? 'attached' : '\u2014' }
+  ] }));
+  frag.appendChild(card(
+    'Traceability \u2014 KPI 6 back to source records',
+    'Every published figure resolves to the observations that produced it, the activity that generated each one, and the evidence attached. This is the audit path from an institutional number to a field record.',
+    table([{ label: 'Program' }, { label: 'Project' }, { label: 'Activity' },
+           { label: 'Disaggregation' }, { label: 'Numerator', num: true },
+           { label: 'Denominator', num: true }, { label: 'Status' }, { label: 'Evidence' }], rows)));
+  return frag;
+}
+
+/* -------------------------------------------------------------------- shell */
+const TABS = [
+  { id: 'overview',  label: 'Overview',      view: viewOverview },
+  { id: 'scorecard', label: 'Scorecard',     view: viewScorecard },
+  { id: 'trend',     label: 'Trends & drill-down', view: viewTrend },
+  { id: 'quality',   label: 'Data quality',  view: viewQuality },
+  { id: 'lineage',   label: 'Traceability',  view: viewLineage }
+];
+
+function render() {
+  const tabs = $('#tabs'); tabs.innerHTML = '';
+  TABS.forEach(t => {
+    const b = el('button', { role: 'tab', text: t.label,
+                             'aria-selected': String(t.id === TAB) });
+    b.addEventListener('click', () => { TAB = t.id; render(); });
+    tabs.appendChild(b);
+  });
+
+  const yp = $('#yearpick');
+  yp.querySelectorAll('button').forEach(n => n.remove());
+  DATA.years.forEach(y => {
+    const b = el('button', { text: 'FY' + y, 'aria-pressed': String(y === YEAR) });
+    b.addEventListener('click', () => { YEAR = y; render(); });
+    yp.appendChild(b);
+  });
+
+  const views = $('#views');
+  views.innerHTML = '';
+  views.appendChild(TABS.find(t => t.id === TAB).view());
+  hideTip();
+}
+
+$('#banner').innerHTML =
+  '<strong>Prototype against demonstration data.</strong> The schema and the ' +
+  'calculation engine are real; the figures are synthetic. KPI definitions, ' +
+  'calculation rules and targets remain to be validated with the Program and ' +
+  'MELIA teams before any of this is reportable.';
+
+render();
+</script>
